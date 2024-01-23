@@ -2,32 +2,21 @@ import os
 import argparse
 import logging
 
+from chartConfig import ChartConfig
+from downloadChart import ChartDetails, Chart
+
 # Setup the loggegr
 FORMAT = '%(asctime)s - %(message)s'
 logging.basicConfig(format=FORMAT, level=os.environ.get("LOGLEVEL", "DEBUG"))
 logger = logging.getLogger(__name__)
 
-# Setup the command line options
-parser = argparse.ArgumentParser()
-parser.add_argument('--repoName', type=str, help='Repository Name')
-parser.add_argument('--repoUrl', type=str, help='URL to the helm repository')
-parser.add_argument('--chart', type=str, help='Name of the chart to grab')
-parser.add_argument('--version', type=str, help='Version of the chart to retrieve')
+# Grab the configuration from config file
+chartsConfig = ChartConfig('charts.ini')  # creating object of HostConfig
+chartsConfig.readConfig()                 # Reading config file 
+charts = chartsConfig.getCharts()         # Getting the list of sections (servers)
+print("Charts: ", charts)
 
-# Parse the commands
-try:
-    args = parser.parse_args()
-except argparse.ArgumentError as e:
-    logger.warning('%s', e) 
-    
-print(f"Parsing inputs:")
-print(f"  REPO_NAME [{args.repoName}] ")
-print(f"  URL       [{args.repoUrl}] ")
-print(f"  Chart     [{args.chart}] ")
-print(f"  Version   [{args.version}] ")
-print("")
-print("")
-
+# Processing starts .....
 path = "charts-temp-directory"
 curr_dir= os.getcwd()
 
@@ -45,18 +34,14 @@ else:
 # Change the working directory to the newly created one  
 os.chdir(path)
 
-# Add the helm repo first    
-logger.info(f"Adding repo {args.repoName} to local")
-os.system(f"helm repo add {args.repoName} {args.repoUrl}")
-os.system("helm repo update")
-
-logger.debug("Pulling %s now\n", {args.chart})
-os.system(f"helm pull {args.repoName}/{args.chart}")
-
-# TODO: Change any container images 
-
-# TODO: Replace the URL
-
-# Clean up
-os.system(f"helm repo remove {args.repoName}")
+for chartname in charts:
+  chart = Chart( chartsConfig.getChart(chartname, "repoUrl"),
+                 chartsConfig.getChart(chartname, "repoName"),
+                 chartsConfig.getChart(chartname, "chartName"),
+                 chartsConfig.getChart(chartname, "chartVersion")
+                )
+  chart.download()
+  chart.process()
+  chart.cleanup()
+  
 os.chdir(curr_dir)

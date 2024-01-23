@@ -7,3 +7,5 @@
 
 charts-temp-directory/**
 sample/**
+
+__pycache__/**
