@@ -1,0 +1,9 @@
+.DS_Store
+*.tgz
+
+*/.DS_Store
+
+*/*.tgz
+
+charts-temp-directory/**
+sample/**
